@@ -62,8 +62,6 @@ int main(int argc, char **argv) {
 
   init_robot();
   wb_robot_step(TIME_STEP);
-  //reset_robot();
-  //rotate_robot(PI/2, PRINT);
   for (int i = 0; i < 10; i++) {
     int * path2 = create_path();
     follow_path(path2);
@@ -71,17 +69,6 @@ int main(int argc, char **argv) {
     reset_robot();
     wb_robot_step(500);
   }
-  //print_values('I');
-
-  /* get a handler to the motors and set target position to infinity (speed control). */
-
-  /*
-   * You should declare here WbDeviceTag variables for storing
-   * robot devices like this:
-   *  WbDeviceTag my_sensor = wb_robot_get_device("my_sensor");
-   *  WbDeviceTag my_actuator = wb_robot_get_device("my_actuator");
-   */
-
 
   /* main loop
    * Perform simulation steps of TIME_STEP milliseconds
@@ -90,13 +77,8 @@ int main(int argc, char **argv) {
   while (wb_robot_step(TIME_STEP) != -1) {
 
     print_values(wb_keyboard_get_key());
-    //print_values('I');
-    //rotate_robot(1.57);
-
 
   };
-
-  /* Enter your cleanup code here */
 
   /* This is necessary to cleanup webots resources */
   wb_robot_cleanup();
@@ -147,7 +129,6 @@ void follow_path(int * path) {
 
 int * create_path() {
   static int path[PATH_LENGTH];
-  bool turn = false;
   int action = 0;
   int dir = RT;
   double x_coord = get_gps(0);
@@ -158,49 +139,36 @@ int * create_path() {
 
   for (int i = 0; i < PATH_LENGTH; i++) {
     action = rand();
-    turn = false;
-    if (action % 2 == 0 || path[i-1] > 0) {
+    if (action % 3 == 0) {
       //going straight
       // printf("(%d, %f, %f)", dir, get_gps(0), get_gps(2));
-      // Avoid walls
-      if ((dir == RT && (z_coord - .75 < -1.2)) ||
-          (dir == LT && (z_coord + .75 >  1.2)) ||
-          (dir == UP && (x_coord - .75 < -1.2)) ||
-          (dir == DN && (x_coord + .75 >  1.2))) {
-        turn = true;
+      path[i] = 0;
+      //printf("%d", path[i]);
+      if (dir == RT) {
+        z_coord -= .25;
+      }
+      else if (dir == LT) {
+        z_coord += .25;
+      }
+      else if (dir == UP) {
+        x_coord -= .25;
       }
       else {
-        path[i] = 0;
-        //printf("%d", path[i]);
-        if (dir == RT) {
-          z_coord -= .25;
-        }
-        else if (dir == LT) {
-          z_coord += .25;
-        }
-        else if (dir == UP) {
-          x_coord -= .25;
-        }
-        else {
-          x_coord += .25;
-        }
-        action = 0;
+        x_coord += .25;
       }
+      action = 0;
     }
-    if (action % 2 == 1 || turn) {
-      //turning
-      if (rand() % 2 == 0) {
-        //turn left
-        path[i] = 1;
-        dir = (dir + 1) % 4;
-        //printf("%d", path[i]);
-      }
-      else {
-        //turn right
-        path[i] = 2;
-        dir = (dir + 3) % 4;
-        //printf("%d", path[i]);
-      }
+    else if (action % 3 == 1) {
+      //turning left
+      path[i] = 1;
+      dir = (dir + 1) % 4;
+      //printf("%d", path[i]);
+    }
+    else {
+      //turning right
+      path[i] = 2;
+      dir = (dir + 3) % 4;
+      //printf("%d", path[i]);
     }
   }
   //printf("\n");
@@ -209,25 +177,18 @@ int * create_path() {
 }
 
 void go_straight(bool print) {
-  double curr_x_gps = get_gps(0);
-  double curr_z_gps = get_gps(2);
 
   wb_motor_set_position(left_motor, INFINITY);
   wb_motor_set_position(right_motor, INFINITY);
 
-  while (fabs(get_gps(0) - curr_x_gps) < .25 && fabs(get_gps(2) - curr_z_gps) < .25) {
-    if (print) {
-      printf("Going straight\n");
-      print_values('G');
-      print_values('I');
-    }
+  wb_motor_set_velocity(left_motor, STR_WHEEL_VEL);
+  wb_motor_set_velocity(right_motor, STR_WHEEL_VEL);
+  for (int i = 0; i < 16; i++) {
     wb_robot_step(TIME_STEP);
-    wb_motor_set_velocity(left_motor, STR_WHEEL_VEL);
-    wb_motor_set_velocity(right_motor, STR_WHEEL_VEL);
-    if (print) {
-      printf("--------\n");
-    }
   }
+
+  wb_motor_set_velocity(left_motor, 0);
+  wb_motor_set_velocity(right_motor, 0);
 }
 
 void rotate_robot(double pos, bool print) {
@@ -248,16 +209,6 @@ void rotate_robot(double pos, bool print) {
   }
   wb_motor_set_velocity(left_motor, left_vel);
   wb_motor_set_velocity(right_motor, right_vel);
-
-  // while (fabs(curr_y_pos - targ_y_pos) > ROT_THR) {
-  //   wb_robot_step(TIME_STEP);
-  //   if (print) {
-  //     print_values('G');
-  //     print_values('I');
-  //     printf("Rotating:\ncurrent: %.3f\ntarget: %.3f\n--------\n", curr_y_pos, targ_y_pos);
-  //   }
-  //   curr_y_pos = get_imu(2);
-  // }
 
   for (int i = 0; i < 8; i++) {
     wb_robot_step(TIME_STEP);
