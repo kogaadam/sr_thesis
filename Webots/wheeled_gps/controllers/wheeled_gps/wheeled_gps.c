@@ -18,7 +18,7 @@
 
 
 #define TIME_STEP 64
-#define PATH_LENGTH 20
+#define PATH_LENGTH_TOT 80
 #define PI 3.14159
 #define PRINT true
 #define NO_PRINT false
@@ -26,6 +26,8 @@
 #define STR_WHEEL_VEL 10
 #define ROT_THR .1
 #define BALL_X_Z -.6
+#define PATH_LEN_LOW 10
+#define PATH_LEN_HIGH 80
 
 enum direction {
   RT,
@@ -40,11 +42,13 @@ void rotate_robot(double pos, bool print);
 void go_straight(bool print);
 double get_imu(int axis);
 double get_gps(int coord);
-int * create_path();
-void follow_path(int * path);
-void print_path(int * path);
+void create_path(char * path, int path_len);
+void follow_path(char * path, int path_len);
+void print_path(char * path, int path_len);
 void reset_robot();
-double find_fitness();
+double find_fitness(char * path, int path_len);
+
+// static int pathLength;
 
 WbDeviceTag gps;
 WbDeviceTag imu;
@@ -62,10 +66,15 @@ int main(int argc, char **argv) {
 
   init_robot();
   wb_robot_step(TIME_STEP);
+  int pathLength;
   for (int i = 0; i < 10; i++) {
-    int * path2 = create_path();
-    follow_path(path2);
-    find_fitness(path2);
+    srand(time(0));
+    pathLength = (rand() % (PATH_LEN_HIGH - PATH_LEN_LOW - 1)) + PATH_LEN_LOW;
+    printf("path length: %d\n", pathLength);
+    char path[PATH_LENGTH_TOT] = {0};
+    create_path(path, pathLength);
+    follow_path(path, pathLength);
+    find_fitness(path, pathLength);
     reset_robot();
     wb_robot_step(500);
   }
@@ -86,13 +95,13 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-double find_fitness(int * path) {
+double find_fitness(char * path, int path_len) {
   double final_x = get_gps(0);
   double final_z = get_gps(2);
   double dist_from_ball = pow((pow(final_x - BALL_X_Z, 2) + pow(final_z - BALL_X_Z, 2)), .5);
   printf("final distance away: %f\n", dist_from_ball);
   int num_turns = 0;
-  for (int i = 0; i < PATH_LENGTH; i++) {
+  for (int i = 0; i < path_len; i++) {
     if (path[i] > 0) {
       num_turns++;
     }
@@ -102,9 +111,9 @@ double find_fitness(int * path) {
   return fitness;
 }
 
-void follow_path(int * path) {
+void follow_path(char * path, int path_len) {
   int dir = RT;
-  for (int i = 0; i < PATH_LENGTH; i++) {
+  for (int i = 0; i < path_len; i++) {
     //printf("|%d ", path[i]);
     if (path[i] == 0) {
       //printf("(to %d)|\n", dir);
@@ -127,8 +136,7 @@ void follow_path(int * path) {
 
 }
 
-int * create_path() {
-  static int path[PATH_LENGTH];
+void create_path(char *path, int path_len) {
   int action = 0;
   int dir = RT;
   double x_coord = get_gps(0);
@@ -137,7 +145,7 @@ int * create_path() {
   srand((unsigned)time(NULL));
   //srand(0);
 
-  for (int i = 0; i < PATH_LENGTH; i++) {
+  for (int i = 0; i < path_len; i++) {
     action = rand();
     if (action % 3 == 0) {
       //going straight
@@ -172,8 +180,6 @@ int * create_path() {
     }
   }
   //printf("\n");
-  
-  return path;
 }
 
 void go_straight(bool print) {
@@ -218,8 +224,8 @@ void rotate_robot(double pos, bool print) {
   wb_motor_set_velocity(right_motor, 0);
 }
 
-void print_path(int * p) {
-  for (int i = 0; i < PATH_LENGTH; i++) {
+void print_path(char * p, int path_len) {
+  for (int i = 0; i < path_len; i++) {
     printf("%d", p[i]);
   }
   printf("\n");
