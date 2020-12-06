@@ -26,8 +26,10 @@
 #define STR_WHEEL_VEL 10
 #define ROT_THR .1
 #define BALL_X_Z -.6
-#define PATH_LEN_LOW 10
-#define PATH_LEN_HIGH 80
+#define PATH_LEN_LOW 5
+#define PATH_LEN_HIGH 5
+#define POPULATION 8
+#define MAX_GENERATIONS 10
 
 enum direction {
   RT,
@@ -47,7 +49,9 @@ void follow_path(char * path, int path_len);
 void print_path(char * path, int path_len);
 void reset_robot();
 double find_fitness(char * path, int path_len);
-
+void print_population(char (*population)[PATH_LENGTH_TOT], char * path_lengths, double * fitness_vals);
+void sort_fitness(char (*population)[PATH_LENGTH_TOT], double * fitness_vals);
+// void sort_fitness(char population[POPULATION][PATH_LENGTH_TOT], double * fitness_vals);
 // static int pathLength;
 
 WbDeviceTag gps;
@@ -67,17 +71,40 @@ int main(int argc, char **argv) {
   init_robot();
   wb_robot_step(TIME_STEP);
   int pathLength;
-  for (int i = 0; i < 10; i++) {
+  char population[POPULATION][PATH_LENGTH_TOT] = {{0}};
+  char path_lengths[POPULATION] = {0};
+  double fitness_vals[POPULATION] = {0};
+  char path[PATH_LENGTH_TOT] = {0};
+
+  for (int i = 0; i < POPULATION; i++) {
     srand(time(0));
     pathLength = (rand() % (PATH_LEN_HIGH - PATH_LEN_LOW - 1)) + PATH_LEN_LOW;
+    path_lengths[i] = pathLength;
     printf("path length: %d\n", pathLength);
-    char path[PATH_LENGTH_TOT] = {0};
     create_path(path, pathLength);
+    for (int j = 0; j < PATH_LENGTH_TOT; j++) {
+      population[i][j] = path[j];
+    }
+    print_path(path, PATH_LENGTH_TOT);
     follow_path(path, pathLength);
-    find_fitness(path, pathLength);
+    fitness_vals[i] = find_fitness(path, pathLength);
     reset_robot();
     wb_robot_step(500);
   }
+
+  print_population(population, path_lengths, fitness_vals);
+  sort_fitness(population, fitness_vals);
+  print_population(population, path_lengths, fitness_vals);
+
+
+  for (int generation = 0; generation < MAX_GENERATIONS; generation++) {
+    //output info on this generation
+    printf("Generation: %d\nBest Match: ", generation);
+    printf("fitness: %f | path length: %d | path: ", fitness_vals[0], path_lengths[0]);
+    print_path(population[0], PATH_LENGTH_TOT);
+    //dump out entire pop***
+  }
+
 
   /* main loop
    * Perform simulation steps of TIME_STEP milliseconds
@@ -93,6 +120,34 @@ int main(int argc, char **argv) {
   wb_robot_cleanup();
 
   return 0;
+}
+
+// bubble sort
+void sort_fitness(char (*population)[PATH_LENGTH_TOT], double * fitness_vals) {
+  double temp_fitness;
+  char * temp_member;
+  for (int i = 0; i < POPULATION; i++) {
+    for (int j = i + 1; j < POPULATION; j++) {
+      if (fitness_vals[i] < fitness_vals[j]) {
+        temp_fitness = fitness_vals[i];
+        temp_member = population[i];
+        fitness_vals[i] = fitness_vals[j];
+        for (int k = 0; k < PATH_LENGTH_TOT; k++) {
+          population[i][k] = population[j][k];
+          population[j][k] = temp_member[k];
+        }
+        fitness_vals[j] = temp_fitness;
+      }
+    }
+  }
+}
+
+void print_population(char (*population)[PATH_LENGTH_TOT], char * path_lengths, double * fitness_vals) {
+  printf("population:\n");
+  for (int i = 0; i < POPULATION; i++) {
+    printf("fitness: %f | path length: %d | path: ", fitness_vals[i], path_lengths[i]);
+    print_path(population[i], PATH_LENGTH_TOT);
+  }
 }
 
 double find_fitness(char * path, int path_len) {
@@ -224,9 +279,9 @@ void rotate_robot(double pos, bool print) {
   wb_motor_set_velocity(right_motor, 0);
 }
 
-void print_path(char * p, int path_len) {
+void print_path(char * path, int path_len) {
   for (int i = 0; i < path_len; i++) {
-    printf("%d", p[i]);
+    printf("%d", path[i]);
   }
   printf("\n");
 }
