@@ -95,7 +95,13 @@ int main(int argc, char **argv) {
       population[j][i] = 7;
     }
   }
-  
+
+  // char testPath[19] = {0,0,1,0,2,0,2,0,0,0,0,2,2,2,2,1,2,0,0};
+  // char testPath[19]    = {2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2};
+  // char testPath[6] = {0, 1, 0, 0, 0, 1};
+  // follow_path(testPath, 6);
+  // double test_fit = find_fitness(testPath, 6, PRINT);
+
   print_population(population, path_lengths, fitness_vals);
 
   for (int i = 0; i < POPULATION; i++) {
@@ -153,10 +159,10 @@ int main(int argc, char **argv) {
       path_lengths[i] = new_lens_p[0];
       path_lengths[i+1] = new_lens_p[1];
       follow_path(population[i], path_lengths[i]);
-      fitness_vals[i] = find_fitness(population[i], path_lengths[i], NO_PRINT);
+      fitness_vals[i] = find_fitness(population[i], path_lengths[i], PRINT);
       reset_robot();
       follow_path(population[i+1], path_lengths[i+1]);
-      fitness_vals[i+1] = find_fitness(population[i+1], path_lengths[i+1], NO_PRINT);
+      fitness_vals[i+1] = find_fitness(population[i+1], path_lengths[i+1], PRINT);
       printf("child 1: fitness: %09.6f | path length: %d | path: ", fitness_vals[i], path_lengths[i]);
       print_path(child1, PATH_LENGTH_TOT);
       printf("child 2: fitness: %09.6f | path length: %d | path: ", fitness_vals[i+1], path_lengths[i+1]);
@@ -208,7 +214,7 @@ void mutate_pop(char (*population)[PATH_LENGTH_TOT], char * path_lengths, double
     for (int action = 0; action < path_lengths[indiv]; action++) {
       accum_action++;
       if (accum_action % mut_cut == 0) {
-        if (rand() % 100 < 5) {
+        if (rand() % 100 < 10) {
           old_action = population[indiv][action];
           new_action = (old_action + 1) % 3;
           printf("MUTATION: indiv %d, action %d, old action %d, new action %d\n", indiv, action, old_action, new_action);
@@ -219,6 +225,8 @@ void mutate_pop(char (*population)[PATH_LENGTH_TOT], char * path_lengths, double
       }
     }
   }
+
+  reset_robot();
 
 }
 
@@ -244,27 +252,6 @@ int * breed_parents(char (*population)[PATH_LENGTH_TOT],
   }
   
   printf("p1 len: %d, p1 cut: %d, p2 len : %d, p2 cut: %d\n", p1_path_len, p1_cutoff, p2_path_len, p2_cutoff);
-  // for (int i = 0; i < PATH_LENGTH_TOT; i++) {
-  //   if (i < p1_cutoff) {
-  //     child1[i] = population[first_parent][i];
-  //   }
-  //   else if (i < new_lens[0]) {
-  //     child1[i] = population[second_parent][i + p2_cutoff - p1_cutoff];
-  //   }
-  //   else {
-  //     child1[i] = 7;
-  //   }
-
-  //   if (i < p2_cutoff) {
-  //     child2[i] = population[second_parent][i];
-  //   }
-  //   else if (i < new_lens[1]) {
-  //     child2[i] = population[first_parent][i + p1_cutoff - p2_cutoff];
-  //   }
-  //   else {
-  //     child2[i] = 7;
-  //   }
-  // }
 
   int fp_index = p2_cutoff;
   int sp_index = p1_cutoff;
